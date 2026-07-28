@@ -198,7 +198,7 @@ const clusterAxis = computed<AxisId>(() => ({
   <PlBlockPage
     v-model:subtitle="app.model.data.customBlockLabel"
     :subtitle-placeholder="app.model.data.defaultBlockLabel"
-    title="TCR Clustering"
+    title="GLIPH2 Clustering"
   >
     <template #append>
       <PlBtnGhost @click.stop="() => (clusteringLogOpen = true)">
