@@ -1,4 +1,5 @@
 import {
+  findClusterByOption,
   getDefaultBlockLabel,
   platforma,
 } from "@platforma-open/milaboratories.tcr-clustering.model";
@@ -34,11 +35,8 @@ function syncDefaultBlockLabel(model: AppModel) {
   // Tolerated block-label hairpin (see harness hairpin.md): derive the default label from the
   // chosen "Cluster by" option label + the Leiden resolution, unless the user set a custom label.
   watchEffect(() => {
-    const sel = model.data.inputSelection;
-    const selValue = sel ? JSON.stringify(sel) : undefined;
-    const inputLabel = selValue
-      ? (model.outputs.clusterByOptions?.find((o) => o.value === selValue)?.label ?? "")
-      : "";
+    const inputLabel =
+      findClusterByOption(model.outputs.clusterByOptions, model.data.inputSelection)?.label ?? "";
     model.data.defaultBlockLabel = getDefaultBlockLabel({
       inputLabel,
       resolution: model.data.resolution,

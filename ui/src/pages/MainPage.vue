@@ -2,6 +2,7 @@
 import { PlMultiSequenceAlignment } from "@milaboratories/multi-sequence-alignment";
 import strings from "@milaboratories/strings";
 import {
+  findClusterByOption,
   VGENE_FASTPATH_THRESHOLD,
   VGENE_PARTITION_WARN_THRESHOLD,
 } from "@platforma-open/milaboratories.tcr-clustering.model";
@@ -72,17 +73,23 @@ const onRowClicked = reactive((key?: PTableKey) => {
 });
 
 function setInput(inputRef?: PlRef) {
+  // PlDropdownRef also emits `update:model-value` on mount with an UNCHANGED ref, so compare before
+  // clearing — an unconditional clear here wipes a restored selection on project reopen.
+  const prev = app.model.data.datasetRef;
+  const sameRef = prev?.blockId === inputRef?.blockId && prev?.name === inputRef?.name;
   app.model.data.datasetRef = inputRef;
   // The "Cluster by" choice is scoped to a dataset — clear it when the dataset changes so the
   // user re-picks against the new options (and we never carry an unresolvable ref into the run).
-  app.model.data.inputSelection = undefined;
+  if (!sameRef) app.model.data.inputSelection = undefined;
 }
 
 // "Cluster by" dropdown <-> data.inputSelection (snapshot pattern). The option value is the
 // JSON-encoded InputSelection; on change we parse it back into data.inputSelection.
-const clusterBy = computed(() =>
-  app.model.data.inputSelection ? JSON.stringify(app.model.data.inputSelection) : undefined,
+// The offered option matching the stored selection.
+const selectedOption = computed(() =>
+  findClusterByOption(app.model.outputs.clusterByOptions, app.model.data.inputSelection),
 );
+const clusterBy = computed(() => selectedOption.value?.value);
 function onClusterByChange(value?: string) {
   app.model.data.inputSelection = value ? JSON.parse(value) : undefined;
 }
@@ -94,8 +101,7 @@ function onClusterByChange(value?: string) {
 // the chain comes from the chain-specific dataset label ("TCR Alpha" vs single-cell "TCR Alpha/Beta").
 const selectedChain = computed<"alpha" | "beta" | undefined>(() => {
   if (!app.model.data.inputSelection) return undefined;
-  const cbLabel =
-    app.model.outputs.clusterByOptions?.find((o) => o.value === clusterBy.value)?.label ?? "";
+  const cbLabel = selectedOption.value?.label ?? "";
   if (/^\s*alpha\b/i.test(cbLabel)) return "alpha";
   if (/^\s*beta\b/i.test(cbLabel)) return "beta";
   const dsRef = app.model.data.datasetRef;
@@ -136,6 +142,12 @@ const checkingSize = computed(
     app.model.data.inputSelection !== undefined && app.model.outputs.inputSeqCount === undefined,
 );
 
+// Empty input: the pre-flight count found no sequences to cluster. Run is blocked by `.args()`, so
+// surface the reason here for the same reason as checkingSize.
+const emptyInput = computed(
+  () => app.model.data.inputSelection !== undefined && app.model.outputs.inputSeqCount === 0,
+);
+
 // Self-heal a stale selection: if the options reload and the stored selection is no longer offered
 // (dataset/upstream changed), clear it. Watch the OUTPUT (not data) — the SDK swaps the whole data
 // object on server patches, which would make a data watcher clobber concurrent writes.
@@ -143,8 +155,8 @@ watch(
   () => app.model.outputs.clusterByOptions,
   (options) => {
     if (!options || options.length === 0) return;
-    const cur = clusterBy.value;
-    if (cur && !options.some((o) => o.value === cur)) {
+    const sel = app.model.data.inputSelection;
+    if (sel && findClusterByOption(options, sel) === undefined) {
       app.model.data.inputSelection = undefined;
     }
   },
@@ -249,6 +261,11 @@ const clusterAxis = computed<AxisId>(() => ({
 
       <PlAlert v-if="checkingSize" type="info" style="margin-top: 0.5rem">
         Checking dataset size before you run. This can take a moment, please wait...
+      </PlAlert>
+
+      <PlAlert v-if="emptyInput" type="warn" style="margin-top: 0.5rem">
+        <b>No sequences to cluster.</b> The current selection has no sequences. Pick a different
+        <b>Cluster by</b> column or <b>Dataset</b>, or check the block that produced it.
       </PlAlert>
 
       <PlAlert

@@ -5,8 +5,8 @@ import { useApp } from "../app";
 
 import type { PredefinedGraphOption } from "@milaboratories/graph-maker";
 import { GraphMaker } from "@milaboratories/graph-maker";
-import { computed } from "vue";
 import type { PColumnIdAndSpec } from "@platforma-sdk/model";
+import { computed } from "vue";
 
 const app = useApp();
 
@@ -52,7 +52,7 @@ const defaultOptions = computed((): PredefinedGraphOption<"bubble">[] | undefine
 </script>
 
 <template>
-  <PlBlockPage>
+  <PlBlockPage no-body-gutters>
     <GraphMaker
       v-model="app.model.data.graphStateBubble"
       chartType="bubble"
