@@ -42,19 +42,20 @@
       "ui": "@platforma-open/milaboratories.tcr-clustering.ui/dist"
     },
     "meta": {
-      "title": "TCR Clustering",
+      "title": "GLIPH2 Clustering",
       "logo": "file:../logos/block-logo.png",
-      "url": "https://github.com/platforma-open/tcr-clustering",
+      "url": "https://github.com/platforma-open/tcr-clustering-gliph2",
       "docs": "https://docs.platforma.bio/",
       "support": "mailto:support@milaboratories.com",
-      "description": "Groups TCR clonotypes by likely shared antigen specificity using GLIPH2 (turboGliph) + Leiden.",
+      "description": "TCR clustering by shared antigen specificity: groups clonotypes that likely recognize the same antigen using GLIPH2 (turboGliph) + Leiden.",
       "longDescription": "file:../docs/description.md",
       "changelog": "file:../CHANGELOG.md",
       "tags": [
         "airr",
         "downstream",
         "clustering",
-        "tcr"
+        "tcr",
+        "tcr-clustering"
       ],
       "marketplaceRanking": 12330,
       "organization": {

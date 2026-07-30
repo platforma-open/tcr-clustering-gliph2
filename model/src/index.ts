@@ -82,6 +82,26 @@ export type BlockData = {
   graphStateBubble: GraphMakerState;
 };
 
+/**
+ * Find the "Cluster by" option that corresponds to a stored selection, and return its `value`
+ * string (the form `PlDropdown` and the option list compare against).
+ */
+export function findClusterByOption(
+  options: { label: string; value: string }[] | undefined,
+  selection: InputSelection | undefined,
+): { label: string; value: string } | undefined {
+  if (options === undefined || selection === undefined) return undefined;
+  return options.find((o) => {
+    let parsed: InputSelection;
+    try {
+      parsed = JSON.parse(o.value) as InputSelection;
+    } catch {
+      return false;
+    }
+    return parsed.sequenceRef === selection.sequenceRef && parsed.vGeneRef === selection.vGeneRef;
+  });
+}
+
 export function getDefaultBlockLabel(data: { inputLabel: string; resolution: number }): string {
   const parts: string[] = [];
   if (data.inputLabel) parts.push(data.inputLabel);
@@ -149,6 +169,10 @@ export const platforma = BlockModelV3.create(dataModel)
     // the input size — and thus the CDR3-only fast-path warning — is known. Last gate, so param
     // errors above surface first and this only shows once everything else is valid.
     if (data.lastInputSeqCount === undefined) throw new Error("Checking dataset size…");
+    // Empty input: the pre-flight count came back with zero distinct sequences, so there is nothing
+    // to cluster. Fail here rather than launching a run that can only produce empty outputs.
+    if (data.lastInputSeqCount === 0)
+      throw new Error("No sequences in the selected column — nothing to cluster");
 
     return {
       defaultBlockLabel: data.defaultBlockLabel,
@@ -408,7 +432,7 @@ export const platforma = BlockModelV3.create(dataModel)
 
   .output("isRunning", (ctx) => ctx.outputs?.getIsReadyOrError() === false)
 
-  .title(() => "TCR Clustering")
+  .title(() => "GLIPH2 Clustering")
 
   .subtitle((ctx) => ctx.data.customBlockLabel || ctx.data.defaultBlockLabel)
 
