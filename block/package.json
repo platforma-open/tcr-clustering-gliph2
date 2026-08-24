@@ -1,6 +1,6 @@
 {
   "name": "@platforma-open/milaboratories.tcr-clustering",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "files": [
     "dist",
     "block-pack"
