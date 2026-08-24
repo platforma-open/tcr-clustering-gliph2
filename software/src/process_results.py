@@ -57,7 +57,7 @@ cloneTable = pl.read_csv(cloneTableTsv, separator="\t", infer_schema_length=0)
 # Keys are read as strings (infer_schema_length=0, matching prep.py) so downstream joins never hit
 # Int/Utf8 dtype mismatches; abundance is the only numeric column, cast back explicitly.
 if "abundance" in cloneTable.columns:
-    cloneTable = cloneTable.with_columns(pl.col("abundance").cast(pl.Float64, strict=False))
+    cloneTable = cloneTable.with_columns(pl.col("abundance").cast(pl.Int64))
 
 # Get all sequence columns if we have them
 sequence_cols = [col for col in cloneTable.columns 
