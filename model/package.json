@@ -27,6 +27,7 @@
     "@milaboratories/graph-maker": "catalog:",
     "@milaboratories/helpers": "catalog:",
     "@milaboratories/strings": "catalog:",
+    "@platforma-open/milaboratories.tcr-clustering.kind": "workspace:*",
     "@platforma-sdk/model": "catalog:"
   },
   "devDependencies": {
