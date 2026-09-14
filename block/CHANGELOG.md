@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0
+
+### Minor Changes
+
+- 97a00b0: Adopt the block-kind contract and the current SDK. The block now declares its
+  init params, so a project template can create it pre-configured with the
+  dataset, the "Cluster by" selection, the Leiden resolution and the consensus
+  settings.
+
 ## 1.0.4
 
 ### Patch Changes
