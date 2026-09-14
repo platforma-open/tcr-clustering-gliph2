@@ -119,12 +119,18 @@ const isColumnId: Guard<SUniversalPColumnId> = (v): v is SUniversalPColumnId =>
  * The UI writes the whole selection in one gesture — the option's `value` is the JSON-encoded
  * selection — so a half-filled one is not a state the block can reach, and a selection without
  * `sequenceRef` would land as a block that cannot resolve what to cluster.
+ *
+ * The two V-gene fields are one choice, not two. Every offered option carries the chain's
+ * resolved V-gene column, and the "+ V gene" option sets `vGeneRef` to that same column — so a
+ * selection that clusters by a V gene the prerun does not measure is unreachable by hand, and
+ * would size the ">800k partition" warning against the wrong column. Requiring the two to agree
+ * refuses nothing the dropdown can produce.
  */
 const isInputSelection: Guard<InputSelection> = (v): v is InputSelection =>
   isPlainObject(v) &&
   isColumnId(v.sequenceRef) &&
-  (isUndefined(v.vGeneRef) || isColumnId(v.vGeneRef)) &&
-  (isUndefined(v.resolvedVGeneRef) || isColumnId(v.resolvedVGeneRef));
+  (isUndefined(v.resolvedVGeneRef) || isColumnId(v.resolvedVGeneRef)) &&
+  (isUndefined(v.vGeneRef) || (isColumnId(v.vGeneRef) && v.vGeneRef === v.resolvedVGeneRef));
 
 /**
  * The runtime half of the contract. The `satisfies` clause is what stops it drifting: every
@@ -136,7 +142,7 @@ const CONTRACT = {
   datasetRef: check(isPlRef, "a reference to an input dataset"),
   inputSelection: check(
     isInputSelection,
-    "an object with a sequence column identifier, optionally with V-gene column identifiers",
+    "an object with a sequence column identifier, optionally with a V-gene column identifier repeated as `resolvedVGeneRef`",
   ),
   resolution: check(isNumberWithin(0.1, 100), "a number between 0.1 and 100"),
   consensusThreshold: check(isNumberWithin(0, 1), "a number between 0 and 1"),

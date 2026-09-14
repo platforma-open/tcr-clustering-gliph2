@@ -14,6 +14,10 @@ const parse = (v: unknown) => kind.parseInitializationParams(v);
 const ANCHORED_ID =
   '{"axes":[{"anchor":"main","idx":1}],"domain":{"pl7.app/vdj/feature":"CDR3","pl7.app/alphabet":"aminoacid"},"name":"pl7.app/vdj/sequence"}' as SUniversalPColumnId;
 
+/** The chain's V-gene column, as `getCanonicalOptions` anchors it. */
+const VGENE_ID =
+  '{"axes":[{"anchor":"main","idx":1}],"domain":{"pl7.app/vdj/reference":"VGene"},"name":"pl7.app/vdj/geneHit"}' as SUniversalPColumnId;
+
 /** A global reference key — the other form a column id serializes to. */
 const GLOBAL_ID =
   '{"__isRef":true,"blockId":"b1","name":"pl7.app/vdj/sequence"}' as SUniversalPColumnId;
@@ -58,10 +62,35 @@ describe("inputSelection", () => {
   it("accepts a full '+ V gene' selection", () => {
     const selection = {
       sequenceRef: ANCHORED_ID,
-      vGeneRef: ANCHORED_ID,
-      resolvedVGeneRef: ANCHORED_ID,
+      vGeneRef: VGENE_ID,
+      resolvedVGeneRef: VGENE_ID,
     };
     expect(parse({ inputSelection: selection })).toEqual({ inputSelection: selection });
+  });
+
+  it("accepts a CDR3-only selection that still carries the resolved V-gene column", () => {
+    // What every plain option looks like: the prerun measures the chain's V-gene partitions
+    // whether or not the user clusters by them.
+    const selection = { sequenceRef: ANCHORED_ID, resolvedVGeneRef: VGENE_ID };
+    expect(parse({ inputSelection: selection })).toEqual({ inputSelection: selection });
+  });
+
+  it("refuses clustering by a V gene the prerun does not measure", () => {
+    expect(() =>
+      parse({ inputSelection: { sequenceRef: ANCHORED_ID, vGeneRef: VGENE_ID } }),
+    ).toThrow("'inputSelection' must be");
+  });
+
+  it("refuses a V gene that disagrees with the resolved one", () => {
+    expect(() =>
+      parse({
+        inputSelection: {
+          sequenceRef: ANCHORED_ID,
+          vGeneRef: VGENE_ID,
+          resolvedVGeneRef: ANCHORED_ID,
+        },
+      }),
+    ).toThrow("'inputSelection' must be");
   });
 
   it("refuses a selection with no sequence column — nothing to cluster", () => {
@@ -74,7 +103,7 @@ describe("inputSelection", () => {
     ["a non-JSON sequence id", { sequenceRef: "beta-cdr3" }],
     ["a JSON sequence id of no known form", { sequenceRef: '{"foo":1}' }],
     ["a non-string sequence id", { sequenceRef: 7 }],
-    ["a bad V-gene id", { sequenceRef: ANCHORED_ID, vGeneRef: "vgene" }],
+    ["a bad V-gene id", { sequenceRef: ANCHORED_ID, vGeneRef: "vgene", resolvedVGeneRef: "vgene" }],
     ["a bad resolved V-gene id", { sequenceRef: ANCHORED_ID, resolvedVGeneRef: "vgene" }],
   ])("refuses %s", (_label, selection) => {
     expect(() => parse({ inputSelection: selection })).toThrow("'inputSelection' must be");
