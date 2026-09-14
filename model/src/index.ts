@@ -16,7 +16,18 @@ import {
   createPlDataTableStateV2,
   createPlDataTableV2,
 } from "@platforma-sdk/model";
+import type {
+  BlockParams,
+  InputSelection,
+} from "@platforma-open/milaboratories.tcr-clustering.kind";
+import { kind } from "@platforma-open/milaboratories.tcr-clustering.kind";
 export type * from "@milaboratories/helpers";
+export type {
+  BlockParams,
+  InputSelection,
+} from "@platforma-open/milaboratories.tcr-clustering.kind";
+import { deriveTemplateParams } from "./templateParams";
+export { deriveTemplateParams };
 
 /**
  * Unique-count above which GLIPH2's global step (~O(n^2.8)) becomes intractable. Above this, the
@@ -34,20 +45,6 @@ export const VGENE_FASTPATH_THRESHOLD = 600_000;
  * path is very slow.
  */
 export const VGENE_PARTITION_WARN_THRESHOLD = 800_000;
-
-/**
- * The "Cluster by" selection, snapshotted from the chosen dropdown option (the
- * model.md snapshot pattern: `.args` is data-only, but the option refs come from
- * the result pool, so the UI writes the resolved selection into `data` on the
- * user's dropdown gesture). Single-chain only (β or α — whichever column
- * `sequenceRef` points at).
- */
-export type InputSelection = {
-  sequenceRef: SUniversalPColumnId;
-  vGeneRef?: SUniversalPColumnId; // resolved V-gene column for the chosen chain (set only for "+ V gene")
-  // The chain's single V-gene column, resolved for EVERY selection.
-  resolvedVGeneRef?: SUniversalPColumnId;
-};
 
 export type BlockData = {
   // Block label (custom overrides default).
@@ -109,12 +106,22 @@ export function getDefaultBlockLabel(data: { inputLabel: string; resolution: num
   return parts.filter(Boolean).join(", ");
 }
 
-const dataModel = new DataModelBuilder().from<BlockData>("v1").init(() => ({
-  defaultBlockLabel: getDefaultBlockLabel({ inputLabel: "", resolution: 1.0 }),
-  customBlockLabel: "",
-  resolution: 1.0,
-  consensusThreshold: 0.6,
-  weightByAbundance: false,
+/**
+ * A fresh block's data, seeded by whatever the creator or template supplied. Every param the
+ * contract carries is honoured here, and every field it does not carry falls back to the
+ * block's own default — so a block created without params is exactly the block this returns.
+ */
+export const initBlockData = (params?: BlockParams): BlockData => ({
+  defaultBlockLabel: getDefaultBlockLabel({
+    inputLabel: "",
+    resolution: params?.resolution ?? 1.0,
+  }),
+  customBlockLabel: params?.customBlockLabel ?? "",
+  datasetRef: params?.datasetRef,
+  inputSelection: params?.inputSelection,
+  resolution: params?.resolution ?? 1.0,
+  consensusThreshold: params?.consensusThreshold ?? 0.6,
+  weightByAbundance: params?.weightByAbundance ?? false,
   tableState: createPlDataTableStateV2(),
   alignmentModel: {},
   graphStateBubble: {
@@ -142,14 +149,18 @@ const dataModel = new DataModelBuilder().from<BlockData>("v1").init(() => ({
       other: { binsCount: 30 },
     },
   },
-}));
+});
+
+const dataModel = new DataModelBuilder({ kind })
+  .from<BlockData>("v1")
+  .init(({ params }) => initBlockData(params));
 
 /** Strip the trailing " Primary" token from a MiXCR single-cell label ("Beta CDR3 aa Primary" -> "Beta CDR3 aa"). */
 function trimPrimary(label: string): string {
   return label.replace(/\s+Primary$/i, "");
 }
 
-export const platforma = BlockModelV3.create(dataModel)
+export const platforma = BlockModelV3.create({ dataModel, kind })
 
   .args((data) => {
     if (!data.datasetRef) throw new Error("Dataset is required");
@@ -431,6 +442,8 @@ export const platforma = BlockModelV3.create(dataModel)
   })
 
   .output("isRunning", (ctx) => ctx.outputs?.getIsReadyOrError() === false)
+
+  .templateParams(deriveTemplateParams)
 
   .title(() => "GLIPH2 Clustering")
 
