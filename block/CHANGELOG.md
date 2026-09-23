@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1
+
+### Patch Changes
+
+- d771f61: Move to workflow-tengo 6.11.1
+
 ## 1.1.0
 
 ### Minor Changes
