@@ -16,6 +16,7 @@
 
 wf := import("@platforma-sdk/workflow-tengo:workflow")
 pt := import("@platforma-sdk/workflow-tengo:pt")
+json := import("json")
 
 wf.prepare(func(args) {
 	bb := wf.createPBundleBuilder()
@@ -26,17 +27,27 @@ wf.prepare(func(args) {
 	if !is_undefined(args.vGeneRef) {
 		bb.addSingle(args.vGeneRef)
 	}
+	if !is_undefined(args.inputFilter) {
+		bb.addRef(json.decode(args.inputFilter))
+	}
 	return { columns: bb.build() }
 })
 
 wf.body(func(args) {
 	seq := args.columns.getColumn(args.sequenceRef)
 
+	// With a subset, count only its clonotypes, as the run clusters only those
+	subsetEntry := undefined
+	if !is_undefined(args.inputFilter) {
+		f := args.columns.getColumn(json.decode(args.inputFilter))
+		subsetEntry = pt.p.column("subsetFilter", { spec: f.spec, data: f.data })
+	}
+
 	// Count DISTINCT CDR3 values — this is the post-dedup unique count that gates the fast path
 	// (run_gliph2.R thresholds on nrow(cdr3) after prep.py dedups on the CDR3 [+ V gene] key).
 	countWf := pt.workflow().mem("1GiB").cpu(1)
 	seqEntry := pt.p.column("seq", { spec: seq.spec, data: seq.data })
-	df := countWf.frame(seqEntry)
+	df := countWf.frame(is_undefined(subsetEntry) ? seqEntry : pt.p.inner(seqEntry, subsetEntry))
 	df.select(pt.col("seq").nUnique().alias("count")).saveContent("count.tsv")
 	countRun := countWf.run()
 
@@ -50,7 +61,8 @@ wf.body(func(args) {
 		vWf := pt.workflow().mem("1GiB").cpu(1)
 		vSeqEntry := pt.p.column("seq", { spec: seq.spec, data: seq.data })
 		vGeneEntry := pt.p.column("vgene", { spec: vgene.spec, data: vgene.data })
-		vdf := vWf.frame(pt.p.inner(vSeqEntry, vGeneEntry))
+		vJoin := is_undefined(subsetEntry) ? pt.p.inner(vSeqEntry, vGeneEntry) : pt.p.inner(vSeqEntry, vGeneEntry, subsetEntry)
+		vdf := vWf.frame(vJoin)
 		grouped := vdf.groupBy("vgene").agg(pt.col("seq").nUnique().alias("cnt"))
 		grouped.select(pt.col("cnt").max().alias("maxCount")).saveContent("maxvgene.tsv")
 		vRun := vWf.run()

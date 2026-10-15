@@ -8,11 +8,12 @@ import {
 } from "@platforma-open/milaboratories.tcr-clustering.model";
 import type {
   AxisId,
+  DatasetSelection,
   PColumnPredicate,
-  PlRef,
   PlSelectionModel,
   PTableKey,
 } from "@platforma-sdk/model";
+import { createDatasetSelection, createPrimaryRef, plRefsEqual } from "@platforma-sdk/model";
 import {
   PlAccordionSection,
   PlAgDataTableV2,
@@ -20,8 +21,8 @@ import {
   PlBlockPage,
   PlBtnGhost,
   PlBtnGroup,
+  PlDatasetSelector,
   PlDropdown,
-  PlDropdownRef,
   PlLogView,
   PlMaskIcon24,
   PlNumberField,
@@ -72,16 +73,27 @@ const onRowClicked = reactive((key?: PTableKey) => {
   multipleSequenceAlignmentOpen.value = true;
 });
 
-function setInput(inputRef?: PlRef) {
-  // PlDropdownRef also emits `update:model-value` on mount with an UNCHANGED ref, so compare before
-  // clearing — an unconditional clear here wipes a restored selection on project reopen.
-  const prev = app.model.data.datasetRef;
-  const sameRef = prev?.blockId === inputRef?.blockId && prev?.name === inputRef?.name;
-  app.model.data.datasetRef = inputRef;
-  // The "Cluster by" choice is scoped to a dataset — clear it when the dataset changes so the
-  // user re-picks against the new options (and we never carry an unresolvable ref into the run).
-  if (!sameRef) app.model.data.inputSelection = undefined;
-}
+// The selector picks a dataset, or a dataset narrowed by one of its subset columns.
+const datasetSelection = computed<DatasetSelection | undefined>({
+  get: () => {
+    const { datasetRef, filterRef } = app.model.data;
+    if (datasetRef === undefined) return undefined;
+    return createDatasetSelection(createPrimaryRef(datasetRef, filterRef));
+  },
+  set: (selection) => {
+    const inputRef = selection?.primary.column;
+    const prev = app.model.data.datasetRef;
+    const sameRef =
+      prev === undefined || inputRef === undefined
+        ? prev === inputRef
+        : plRefsEqual(prev, inputRef, true);
+    app.model.data.datasetRef = inputRef;
+    app.model.data.filterRef = selection?.primary.filter;
+    // The "Cluster by" choice is scoped to a dataset — clear it when the dataset changes so the
+    // user re-picks against the new options (and we never carry an unresolvable ref into the run).
+    if (!sameRef) app.model.data.inputSelection = undefined;
+  },
+});
 
 // "Cluster by" dropdown <-> data.inputSelection (snapshot pattern). The option value is the
 // JSON-encoded InputSelection; on change we parse it back into data.inputSelection.
@@ -106,9 +118,8 @@ const selectedChain = computed<"alpha" | "beta" | undefined>(() => {
   if (/^\s*beta\b/i.test(cbLabel)) return "beta";
   const dsRef = app.model.data.datasetRef;
   const dsLabel = dsRef
-    ? (app.model.outputs.datasetOptions?.find(
-        (o) => o.ref.blockId === dsRef.blockId && o.ref.name === dsRef.name,
-      )?.label ?? "")
+    ? (app.model.outputs.datasetOptions?.find((o) => plRefsEqual(o.primary.ref, dsRef, true))
+        ?.primary.label ?? "")
     : "";
   if (dsLabel.includes("/")) return undefined; // e.g. single-cell "TCR Alpha/Beta" (chain set above)
   if (/\balpha\b/i.test(dsLabel)) return "alpha";
@@ -235,13 +246,12 @@ const clusterAxis = computed<AxisId>(() => ({
     <PlSlideModal v-model="settingsOpen" close-on-outside-click shadow>
       <template #title>{{ strings.titles.settings }}</template>
 
-      <PlDropdownRef
-        v-model="app.model.data.datasetRef"
+      <PlDatasetSelector
+        v-model="datasetSelection"
         :options="app.model.outputs.datasetOptions"
         :label="strings.titles.dataset"
         clearable
         required
-        @update:model-value="setInput"
       />
 
       <PlDropdown

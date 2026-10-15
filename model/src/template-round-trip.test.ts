@@ -17,6 +17,7 @@ const roundTrip = (data: BlockData): BlockData =>
   );
 
 const DATASET_REF: PlRef = { __isRef: true, blockId: "b1", name: "dataset" };
+const FILTER_REF: PlRef = { __isRef: true, blockId: "b2", name: "labels.igg" };
 const SEQ_ID =
   '{"axes":[{"anchor":"main","idx":1}],"domain":{"pl7.app/vdj/feature":"CDR3","pl7.app/alphabet":"aminoacid"},"name":"pl7.app/vdj/sequence"}' as SUniversalPColumnId;
 const VGENE_ID =
@@ -27,6 +28,7 @@ const configured: BlockData = {
   ...initBlockData(),
   customBlockLabel: "GLIPH2, beta + V",
   datasetRef: DATASET_REF,
+  filterRef: FILTER_REF,
   inputSelection: { sequenceRef: SEQ_ID, vGeneRef: VGENE_ID, resolvedVGeneRef: VGENE_ID },
   resolution: 12.5,
   consensusThreshold: 0.85,
@@ -38,6 +40,7 @@ describe("the template round trip", () => {
     const restored = roundTrip(configured);
     expect(restored.customBlockLabel).toBe("GLIPH2, beta + V");
     expect(restored.datasetRef).toEqual(DATASET_REF);
+    expect(restored.filterRef).toEqual(FILTER_REF);
     expect(restored.inputSelection).toEqual(configured.inputSelection);
     expect(restored.resolution).toBe(12.5);
     expect(restored.consensusThreshold).toBe(0.85);

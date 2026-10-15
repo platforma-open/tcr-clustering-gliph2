@@ -50,6 +50,8 @@ export type BlockParams = {
   customBlockLabel?: string;
   /** The clustered dataset. `inputSelection`'s ids are anchored to it, so the two travel together. */
   datasetRef?: PlRef;
+  /** A subset column (`pl7.app/isSubset`) of the dataset; only its clonotypes are clustered. */
+  filterRef?: PlRef;
   inputSelection?: InputSelection;
   resolution?: number;
   consensusThreshold?: number;
@@ -140,6 +142,7 @@ const isInputSelection: Guard<InputSelection> = (v): v is InputSelection =>
 const CONTRACT = {
   customBlockLabel: check(isString, "a string"),
   datasetRef: check(isPlRef, "a reference to an input dataset"),
+  filterRef: check(isPlRef, "a reference to a subset column"),
   inputSelection: check(
     isInputSelection,
     "an object with a sequence column identifier, optionally with a V-gene column identifier repeated as `resolvedVGeneRef`",
