@@ -1019,7 +1019,9 @@ gliph2 <- function(cdr3_sequences,
             
             remaining_ids <- remaining_ids[!temp_bool]
             act_subseqs <- act_subseqs[!temp_bool]
-            act_subseqs_matrix <- act_subseqs_matrix[!temp_bool,]
+            # BEFORE: act_subseqs_matrix <- act_subseqs_matrix[!temp_bool,]
+            # PATCHED: drop = FALSE, or one remaining row becomes a vector and ncol() fails
+            act_subseqs_matrix <- act_subseqs_matrix[!temp_bool, , drop = FALSE]
             if(base::length(remaining_ids) == 0) break()
           }
           if(base::length(remaining_ids) == 0) break()
