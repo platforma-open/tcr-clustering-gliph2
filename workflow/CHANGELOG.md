@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.4
+
+### Patch Changes
+
+- 86e784b: Release every package through npm trusted publishing (OIDC) so each package's trusted publisher is used before it expires.
+- Updated dependencies [86e784b]
+  - @platforma-open/milaboratories.tcr-clustering.gliph-runner@1.0.2
+  - @platforma-open/milaboratories.tcr-clustering.software@1.0.3
+
 ## 1.0.3
 
 ### Patch Changes
