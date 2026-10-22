@@ -14,6 +14,7 @@ export function deriveTemplateParams(data: BlockData): BlockParams {
   return {
     customBlockLabel: data.customBlockLabel,
     datasetRef: data.datasetRef,
+    filterRef: data.filterRef,
     inputSelection: data.inputSelection,
     resolution: data.resolution,
     consensusThreshold: data.consensusThreshold,

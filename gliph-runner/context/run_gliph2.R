@@ -34,9 +34,9 @@ suppressMessages(library(turboGliph))
 # turboGliph's global step crashes on narrow partitions whose CDR3 structs don't overlap the naive
 # reference DB: ref_stats is built as an empty double-typed frame, so dplyr's strict join on `tag`
 # aborts ("y$tag is a <double>"). The fast path can produce such partitions, and a crash would
-# silently drop that partition's edges. gliph2_patched.R is turboGliph 0.99.2's gliph2() with three
+# silently drop that partition's edges. gliph2_patched.R is turboGliph 0.99.2's gliph2() with four
 # minimal edits (type the empty ref_stats + coerce the two sample-vs-reference join keys to
-# character). Loaded into an env parented on turboGliph's namespace so every internal call resolves
+# character + keep the D-gene search matrix 2-D when one sequence is left). Loaded into an env parented on turboGliph's namespace so every internal call resolves
 # exactly as the installed function would. Falls back to the stock gliph2() if the patch is absent.
 .load_gliph2 <- function() {
   patch <- "/app/gliph2_patched.R"
