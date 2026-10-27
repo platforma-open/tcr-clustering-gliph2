@@ -59,6 +59,8 @@ function syncPrerunSizeCount(model: AppModel) {
     () => [
       model.data.datasetRef?.name,
       model.data.datasetRef?.blockId,
+      model.data.filterRef?.name,
+      model.data.filterRef?.blockId,
       model.data.inputSelection?.sequenceRef,
     ],
     () => {

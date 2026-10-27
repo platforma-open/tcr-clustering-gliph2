@@ -9,6 +9,7 @@ ll := import("@platforma-sdk/workflow-tengo:ll")
 
 text := import("text")
 math := import("math")
+json := import("json")
 
 clusteringTpl := assets.importTemplate(":clustering")
 emptyCheckTpl := assets.importTemplate(":empty-check")
@@ -39,6 +40,30 @@ setTableProps := func(spec, label, visibility, orderPriority, ...description) {
 	return maps.deepMerge(spec, {
 		annotations: annotations
 	})
+}
+
+// A TSV builder restricted to an optional subset column. With one, each column is its own
+// filtered primary, full-joined, so the rows stay the union of the columns.
+newTableBuilder := func(filterColumn) {
+	if is_undefined(filterColumn) {
+		return pframes.tsvFileBuilder()
+	}
+	tb := pframes.tableBuilder("tsv").setJoinMode("full")
+	nColumns := 0
+	return {
+		add: func(column, opts) {
+			tb.addPrimary("col" + string(nColumns), {
+				__isPrimaryRef: "v1",
+				column: column,
+				filter: filterColumn
+			}, opts)
+			nColumns += 1
+		},
+		setAxisHeader: func(matcher, header) { tb.setAxisHeader(matcher, header) },
+		mem: func(amount) { tb.mem(amount) },
+		cpu: func(amount) { tb.cpu(amount) },
+		build: func() { return tb.build() }
+	}
 }
 
 wf.prepare(func(args) {
@@ -72,6 +97,11 @@ wf.prepare(func(args) {
 			name: "pl7.app/label"
 		}, "clonotypeKeyLabels")
 
+	// Optional subset column picked alongside the dataset (PlDatasetSelector)
+	if !is_undefined(args.inputFilter) {
+		bundleBuilder.addRef(json.decode(args.inputFilter))
+	}
+
 	return {
 		columns: bundleBuilder.build()
 	}
@@ -100,8 +130,17 @@ wf.body(func(args) {
 	defaultConvMem := string(int(math.max(16, baseMemGiB / 8))) + "GiB"
 	defaultConvCpu := 1
 
+	// Optional subset: only its clonotypes enter both tables. The trace roots in the filter
+	// so downstream labels name it.
+	filterColumn := undefined
+	traceSpec := abundanceSpec
+	if !is_undefined(args.inputFilter) {
+		filterColumn = columns.getColumn(json.decode(args.inputFilter))
+		traceSpec = filterColumn.spec
+	}
+
 	// Clustering input table: clonotypeKey + sequence_0 (CDR3 chain) + (with + V-gene) v_gene.
-	seqTableBuilder := pframes.tsvFileBuilder()
+	seqTableBuilder := newTableBuilder(filterColumn)
 	seqTableBuilder.mem(string(int(math.max(32, baseMemGiB / 4))) + "GiB")
 	seqTableBuilder.cpu(4)
 
@@ -130,7 +169,7 @@ wf.body(func(args) {
 	mappingRef := anonymizationResult.output("mapping")
 
 	// clone table
-	cloneTableBuilder := pframes.tsvFileBuilder()
+	cloneTableBuilder := newTableBuilder(filterColumn)
 	// @TODO: Delete abundanceSaltedSpec after SDK update fixing CID, return to
 	// 	cloneTableBuilder.add({ spec: abundanceColumn.spec, data: anonymizedAbundanceData }, {header: "abundance"})
 	// TEMP CID-conflict workaround (remove when the SDK makes xsv.exportFrame output deterministic):
@@ -199,6 +238,10 @@ wf.body(func(args) {
 			"pl7.app/table/visibility": "default",
 			"pl7.app/table/orderPriority": "990000"
 		}
+	}
+	// A subset run stamps the cluster axis, so every cluster column says it covers only the subset
+	if !is_undefined(filterColumn) {
+		clusterIdAxisSpec.domain["pl7.app/inputSubset"] = args.inputFilter
 	}
 
 	ac := {
@@ -445,6 +488,13 @@ wf.body(func(args) {
 		partitionKeyLength: 0
 		}, {splitDataAndSpec: true, cpu: defaultConvCpu, mem: defaultConvMem})
 
+	distanceDomain := {
+		"pl7.app/clustering/algorithm": "gliph2-leiden",
+		"pl7.app/clustering/blockId": blockId
+	}
+	if !is_undefined(filterColumn) {
+		distanceDomain["pl7.app/inputSubset"] = args.inputFilter
+	}
 	distancesPf := xsv.importFile(clusteringAnalysis.output("distanceToCentroid"), "tsv", {
 		axes: [{
 			column: "clonotypeKey",
@@ -455,10 +505,7 @@ wf.body(func(args) {
 			spec: setTableProps({
 				name: "pl7.app/distanceToCentroid",
 				valueType: "Float",
-				domain:  {
-					"pl7.app/clustering/algorithm": "gliph2-leiden",
-					"pl7.app/clustering/blockId": blockId
-				},
+				domain: distanceDomain,
 				annotations: {
 					"pl7.app/min": "0",
 					"pl7.app/max": "1",
@@ -503,7 +550,7 @@ wf.body(func(args) {
 
 	// building outputs & exports
 	trace := pSpec.makeTrace(
-		abundanceSpec,
+		traceSpec,
 		{
 			type: "milaboratories.tcr-clustering.clustering",
 			importance: 30,
