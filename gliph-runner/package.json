@@ -1,6 +1,6 @@
 {
   "name": "@platforma-open/milaboratories.tcr-clustering.gliph-runner",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "GLIPH2 runner: a docker image (R + turboGliph, baked run_gliph2.R) that builds the GLIPH2 clone_network for the GLIPH2 + Leiden clustering engine.",
   "files": [
     "./dist/**/*"
