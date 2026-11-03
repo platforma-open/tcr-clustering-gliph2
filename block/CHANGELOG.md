@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1
+
+### Patch Changes
+
+- 348acf1: Per-sample cluster abundance columns no longer carry pl7.app/isAnchor, so cluster axes are not mistaken for dataset axes.
+
 ## 1.2.0
 
 ### Minor Changes
