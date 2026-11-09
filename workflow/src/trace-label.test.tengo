@@ -1,0 +1,58 @@
+test := import("@platforma-sdk/workflow-tengo:test")
+traceLabel := import(":trace-label")
+
+specs := {
+	cdr3: {annotations: {"pl7.app/label": "CDR3 aa Primary"}},
+	cdr3Lower: {annotations: {"pl7.app/label": "CDR3 aa primary"}},
+	cdr3Inner: {annotations: {"pl7.app/label": "Primary CDR3 aa"}},
+	unlabelled: {annotations: {}},
+	emptyLabel: {annotations: {"pl7.app/label": ""}},
+	bare: {}
+}
+
+columns := {
+	getSpec: func(ref) {
+		return specs[ref]
+	}
+}
+
+args := func(overrides) {
+	res := {
+		customBlockLabel: "",
+		paramsLabel: "resolution:1"
+	}
+	for k, v in overrides {
+		res[k] = v
+	}
+	return res
+}
+
+cdr3Only := {sequenceRef: "cdr3"}
+withVGene := {sequenceRef: "cdr3", vGeneRef: "vGene"}
+
+Test_custom_label_is_kept_verbatim := func() {
+	test.isEqual("My run", traceLabel.build(args({customBlockLabel: "My run"}), columns, withVGene, "cdr3"), "custom label wins")
+}
+
+Test_default_lists_column_label_then_settings := func() {
+	test.isEqual("GLIPH2 Clustering (CDR3 aa, resolution:1)", traceLabel.build(args({}), columns, cdr3Only, "cdr3"), "column label, then settings")
+}
+
+Test_trailing_primary_is_trimmed_case_insensitively := func() {
+	test.isEqual("GLIPH2 Clustering (CDR3 aa, resolution:1)", traceLabel.build(args({}), columns, cdr3Only, "cdr3Lower"), "trailing primary dropped")
+	test.isEqual("GLIPH2 Clustering (Primary CDR3 aa, resolution:1)", traceLabel.build(args({}), columns, cdr3Only, "cdr3Inner"), "only a trailing Primary is dropped")
+}
+
+Test_v_gene_selection_adds_suffix := func() {
+	test.isEqual("GLIPH2 Clustering (CDR3 aa + V gene, resolution:1)", traceLabel.build(args({}), columns, withVGene, "cdr3"), "+ V gene after the trimmed label")
+}
+
+Test_unlabelled_column_is_skipped := func() {
+	for ref in ["unlabelled", "emptyLabel", "bare"] {
+		test.isEqual("GLIPH2 Clustering (resolution:1)", traceLabel.build(args({}), columns, withVGene, ref), "no column label for " + ref)
+	}
+}
+
+Test_nothing_to_show_gives_the_block_name := func() {
+	test.isEqual("GLIPH2 Clustering", traceLabel.build(args({paramsLabel: ""}), columns, cdr3Only, "bare"), "bare block name")
+}

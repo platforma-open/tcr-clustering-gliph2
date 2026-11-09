@@ -2,6 +2,7 @@
 import { PlMultiSequenceAlignment } from "@milaboratories/multi-sequence-alignment";
 import strings from "@milaboratories/strings";
 import {
+  defaultSubtitle,
   findClusterByOption,
   VGENE_FASTPATH_THRESHOLD,
   VGENE_PARTITION_WARN_THRESHOLD,
@@ -220,7 +221,7 @@ const clusterAxis = computed<AxisId>(() => ({
 <template>
   <PlBlockPage
     v-model:subtitle="app.model.data.customBlockLabel"
-    :subtitle-placeholder="app.model.data.defaultBlockLabel"
+    :subtitle-placeholder="defaultSubtitle(app.model.data)"
     title="GLIPH2 Clustering"
   >
     <template #append>

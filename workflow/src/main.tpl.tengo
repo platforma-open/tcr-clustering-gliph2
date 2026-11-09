@@ -10,6 +10,7 @@ ll := import("@platforma-sdk/workflow-tengo:ll")
 text := import("text")
 math := import("math")
 json := import("json")
+traceLabelLib := import(":trace-label")
 
 clusteringTpl := assets.importTemplate(":clustering")
 emptyCheckTpl := assets.importTemplate(":empty-check")
@@ -543,11 +544,7 @@ wf.body(func(args) {
 		partitionKeyLength: 0
 		}, {splitDataAndSpec: true, cpu: defaultConvCpu, mem: defaultConvMem})
 
-	// Block label (custom overrides default), used as the trace step label below.
-	traceLabel := args.customBlockLabel
-	if traceLabel == "" {
-		traceLabel = args.defaultBlockLabel
-	}
+	traceLabel := traceLabelLib.build(args, columns, sel, sequenceRef)
 
 	// building outputs & exports
 	trace := pSpec.makeTrace(
