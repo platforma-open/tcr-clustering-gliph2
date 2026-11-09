@@ -1,0 +1,33 @@
+ll := import("@platforma-sdk/workflow-tengo:ll")
+text := import("text")
+
+// Block label (custom overrides default).
+// The default is the block name with the native label of the chosen CDR3 column (trailing
+// "Primary" dropped, "+ V gene" when clustering keys on the V gene too), then the settings.
+build := func(args, columns, sel, sequenceRef) {
+	traceLabel := args.customBlockLabel
+	if traceLabel == "" {
+		labelParts := []
+		sequenceAnnotations := columns.getSpec(sequenceRef).annotations
+		sequenceLabel := is_undefined(sequenceAnnotations) ? undefined : sequenceAnnotations["pl7.app/label"]
+		if !is_undefined(sequenceLabel) && sequenceLabel != "" {
+			sequenceLabel = text.re_replace("(?i)\\s+Primary$", sequenceLabel, "")
+			if !is_undefined(sel.vGeneRef) {
+				sequenceLabel = sequenceLabel + " + V gene"
+			}
+			labelParts = append(labelParts, sequenceLabel)
+		}
+		if args.paramsLabel != "" {
+			labelParts = append(labelParts, args.paramsLabel)
+		}
+		traceLabel = "GLIPH2 Clustering"
+		if len(labelParts) > 0 {
+			traceLabel = "GLIPH2 Clustering (" + text.join(labelParts, ", ") + ")"
+		}
+	}
+	return traceLabel
+}
+
+export ll.toStrict({
+	build: build
+})
