@@ -51,10 +51,16 @@ export const VGENE_FASTPATH_THRESHOLD = 600_000;
  */
 export const VGENE_PARTITION_WARN_THRESHOLD = 800_000;
 
-export type BlockData = {
-  // Block label (custom overrides default).
+type BlockDataV1 = Omit<BlockData, "subtitleLabel"> & {
   defaultBlockLabel: string;
+};
+
+export type BlockData = {
+  // Block label (custom overrides the default trace label and subtitle).
   customBlockLabel: string;
+  // Label of the chosen "Cluster by" option as the result pool shows it. Written by the input
+  // pickers on a user pick; feeds the subtitle only, never the workflow.
+  subtitleLabel?: string;
 
   // Input selection.
   datasetRef?: PlRef; // anchor: bulk or single-cell TCR dataset
@@ -105,11 +111,18 @@ export function findClusterByOption(
   });
 }
 
-export function getDefaultBlockLabel(data: { inputLabel: string; resolution: number }): string {
-  const parts: string[] = [];
-  if (data.inputLabel) parts.push(data.inputLabel);
-  parts.push(`resolution:${data.resolution}`);
-  return parts.filter(Boolean).join(", ");
+/** Settings part of the block label, shared by the trace label and the subtitle. */
+export function labelFromParams(data: BlockData): string {
+  return `resolution:${data.resolution}`;
+}
+
+/**
+ * Subtitle shown when the user has not set a custom block label. The stored option label is
+ * shown only while a "Cluster by" option is selected.
+ */
+export function defaultSubtitle(data: BlockData): string {
+  const optionLabel = data.inputSelection ? data.subtitleLabel : "";
+  return [optionLabel, labelFromParams(data)].filter(Boolean).join(", ");
 }
 
 /**
@@ -118,11 +131,8 @@ export function getDefaultBlockLabel(data: { inputLabel: string; resolution: num
  * block's own default — so a block created without params is exactly the block this returns.
  */
 export const initBlockData = (params?: BlockParams): BlockData => ({
-  defaultBlockLabel: getDefaultBlockLabel({
-    inputLabel: "",
-    resolution: params?.resolution ?? 1.0,
-  }),
   customBlockLabel: params?.customBlockLabel ?? "",
+  subtitleLabel: "",
   datasetRef: params?.datasetRef,
   filterRef: params?.filterRef,
   inputSelection: params?.inputSelection,
@@ -159,7 +169,13 @@ export const initBlockData = (params?: BlockParams): BlockData => ({
 });
 
 const dataModel = new DataModelBuilder({ kind })
-  .from<BlockData>("v1")
+  .from<BlockDataV1>("v1")
+  // The old label mixed the pool label of the chosen option with the resolution; the resolution
+  // part is recomputed from data, and the option part returns on the next "Cluster by" pick.
+  .migrate<BlockData>("v2", ({ defaultBlockLabel: _, ...rest }) => ({
+    ...rest,
+    subtitleLabel: "",
+  }))
   .init(({ params }) => initBlockData(params));
 
 /** Strip the trailing " Primary" token from a MiXCR single-cell label ("Beta CDR3 aa Primary" -> "Beta CDR3 aa"). */
@@ -203,8 +219,8 @@ export const platforma = BlockModelV3.create({ dataModel, kind })
       );
 
     return {
-      defaultBlockLabel: data.defaultBlockLabel,
       customBlockLabel: data.customBlockLabel,
+      paramsLabel: labelFromParams(data),
       datasetRef: data.datasetRef,
       // Strip resolvedVGeneRef (prerun-only) — clustering keys on vGeneRef, set only for "+ V gene".
       inputSelection: { sequenceRef: sel.sequenceRef, vGeneRef: sel.vGeneRef },
@@ -491,7 +507,7 @@ export const platforma = BlockModelV3.create({ dataModel, kind })
 
   .title(() => "GLIPH2 Clustering")
 
-  .subtitle((ctx) => ctx.data.customBlockLabel || ctx.data.defaultBlockLabel)
+  .subtitle((ctx) => ctx.data.customBlockLabel || defaultSubtitle(ctx.data))
 
   .sections((_ctx) => [
     { type: "link" as const, href: "/" as const, label: strings.titles.main },

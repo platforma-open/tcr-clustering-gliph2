@@ -544,9 +544,27 @@ wf.body(func(args) {
 		}, {splitDataAndSpec: true, cpu: defaultConvCpu, mem: defaultConvMem})
 
 	// Block label (custom overrides default), used as the trace step label below.
+	// The default is the block name with the native label of the chosen CDR3 column (trailing
+	// "Primary" dropped, "+ V gene" when clustering keys on the V gene too), then the settings.
 	traceLabel := args.customBlockLabel
 	if traceLabel == "" {
-		traceLabel = args.defaultBlockLabel
+		labelParts := []
+		sequenceAnnotations := columns.getSpec(sequenceRef).annotations
+		sequenceLabel := is_undefined(sequenceAnnotations) ? undefined : sequenceAnnotations["pl7.app/label"]
+		if !is_undefined(sequenceLabel) && sequenceLabel != "" {
+			sequenceLabel = text.re_replace("(?i)\\s+Primary$", sequenceLabel, "")
+			if !is_undefined(sel.vGeneRef) {
+				sequenceLabel = sequenceLabel + " + V gene"
+			}
+			labelParts = append(labelParts, sequenceLabel)
+		}
+		if args.paramsLabel != "" {
+			labelParts = append(labelParts, args.paramsLabel)
+		}
+		traceLabel = "GLIPH2 Clustering"
+		if len(labelParts) > 0 {
+			traceLabel = "GLIPH2 Clustering (" + text.join(labelParts, ", ") + ")"
+		}
 	}
 
 	// building outputs & exports

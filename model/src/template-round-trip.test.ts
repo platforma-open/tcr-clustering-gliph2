@@ -78,6 +78,7 @@ describe("the template round trip", () => {
   it("does not carry derived, mirrored or view-only fields", () => {
     const restored = roundTrip({
       ...configured,
+      subtitleLabel: "Beta CDR3 aa + V gene",
       lastInputSeqCount: 480_000,
       mem: 64,
       cpu: 16,
@@ -85,9 +86,8 @@ describe("the template round trip", () => {
     expect(restored.lastInputSeqCount).toBeUndefined();
     expect(restored.mem).toBeUndefined();
     expect(restored.cpu).toBeUndefined();
-    // The default label is re-derived from the chosen option's label on mount, so a template
-    // carrying it would only ship a value the UI overwrites.
-    expect(restored.defaultBlockLabel).toBe("resolution:12.5");
+    // The subtitle label is the source project's pool text, so a template does not carry it.
+    expect(restored.subtitleLabel).toBe("");
     expect(restored.alignmentModel).toEqual({});
   });
 });

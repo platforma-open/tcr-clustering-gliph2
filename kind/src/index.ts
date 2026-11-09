@@ -32,9 +32,9 @@ export type InputSelection = {
  * new instance: the input it points at, the analysis recipe, and the user's own label.
  *
  * Excluded on purpose:
- *   * `defaultBlockLabel` — derived from the chosen option's label and the resolution, and
- *     rewritten by a `watchEffect` the moment the UI mounts. A template value for it would be
- *     overwritten before anyone could read it. Only the scientist's own `customBlockLabel` is
+ *   * `subtitleLabel` — the result-pool label of the chosen option, a display cache of the
+ *     source project's pool text. A block created from a template shows the settings part of
+ *     its subtitle until the user's first pick. Only the scientist's own `customBlockLabel` is
  *     worth restoring.
  *   * `lastInputSeqCount` — the prerun's sequence count, mirrored into `data` so the args
  *     lambda (which sees no outputs) can hold Run until the size check lands. It describes the
