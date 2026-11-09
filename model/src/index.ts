@@ -58,8 +58,8 @@ type BlockDataV1 = Omit<BlockData, "subtitleLabel"> & {
 export type BlockData = {
   // Block label (custom overrides the default trace label and subtitle).
   customBlockLabel: string;
-  // Label of the chosen "Cluster by" option as the result pool shows it. Written by the input
-  // pickers on a user pick; feeds the subtitle only, never the workflow.
+  // Label of the chosen "Cluster by" option as the result pool shows it, kept in sync by the UI;
+  // feeds the subtitle only, never the workflow.
   subtitleLabel?: string;
 
   // Input selection.
@@ -171,7 +171,7 @@ export const initBlockData = (params?: BlockParams): BlockData => ({
 const dataModel = new DataModelBuilder({ kind })
   .from<BlockDataV1>("v1")
   // The old label mixed the pool label of the chosen option with the resolution; the resolution
-  // part is recomputed from data, and the option part returns on the next "Cluster by" pick.
+  // part is recomputed from data, and the option part returns when the block is opened.
   .migrate<BlockData>("v2", ({ defaultBlockLabel: _, ...rest }) => ({
     ...rest,
     subtitleLabel: "",

@@ -34,7 +34,7 @@ export type InputSelection = {
  * Excluded on purpose:
  *   * `subtitleLabel` — the result-pool label of the chosen option, a display cache of the
  *     source project's pool text. A block created from a template shows the settings part of
- *     its subtitle until the user's first pick. Only the scientist's own `customBlockLabel` is
+ *     its subtitle until the block is opened. Only the scientist's own `customBlockLabel` is
  *     worth restoring.
  *   * `lastInputSeqCount` — the prerun's sequence count, mirrored into `data` so the args
  *     lambda (which sees no outputs) can hold Run until the size check lands. It describes the
