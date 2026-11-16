@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.3
+
+### Patch Changes
+
+- Updated dependencies [ba30c72]
+  - @platforma-open/milaboratories.tcr-clustering.kind@1.1.1
+
 ## 1.2.2
 
 ### Patch Changes

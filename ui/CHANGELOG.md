@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.3
+
+### Patch Changes
+
+- @platforma-open/milaboratories.tcr-clustering.model@1.2.3
+
 ## 1.2.2
 
 ### Patch Changes
